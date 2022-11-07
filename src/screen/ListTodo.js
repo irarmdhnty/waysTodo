@@ -1,29 +1,40 @@
-import DateTimePicker from "@react-native-community/datetimepicker";
+import * as React from "react";
 import {
-  Box,
-  CheckIcon,
-  HStack,
-  Input,
-  Select,
-  VStack,
-  Text,
-  ScrollView,
   View,
+  Text,
+  StatusBar,
+  VStack,
+  Image,
+  HStack,
   FlatList,
+  Box,
+  ScrollView,
+  Input,
+  Stack,
+  Pressable,
+  Select,
+  CheckIcon,
 } from "native-base";
-import React from "react";
-import { StyleSheet, Image, TouchableOpacity } from "react-native";
+import { StyleSheet, Platform } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker, {
+  DateTimePickerAndroid,
+} from "@react-native-community/datetimepicker";
 
 import profile from "../components/assets/profile.png";
-import { ButtonAll } from "../components/ButtonAll";
+import finish from "../components/assets/finish.png";
+import pending from "../components/assets/pending.png";
 
-const ListTodo = ({ navigation }) => {
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+
+export default function List(props) {
   const [date, setDate] = React.useState(new Date());
   const [mode, setMode] = React.useState("date");
   const [show, setShow] = React.useState(false);
-  const [text, setText] = React.useState("Empty");
+  const [text, setText] = React.useState("Choose Date");
 
-  const onChange = (event, selectedDate) => {
+  const onChangeDate = (event, selectedDate) => {
     const currentDate = selectedDate || date;
     setShow(false);
     setDate(currentDate);
@@ -36,7 +47,6 @@ const ListTodo = ({ navigation }) => {
       "/" +
       tempDate.getFullYear();
     setText(fDate);
-    console.log(fDate);
   };
 
   const showMode = (currentMode) => {
@@ -44,152 +54,294 @@ const ListTodo = ({ navigation }) => {
     setMode(currentMode);
   };
 
-  const todos = [
-    {
-      title: "Study - Golang",
-      category: "Study",
-    },
-    {
-      title: "Home Work - Mathematics",
-      category: "Home Work",
-    },
-    {
-      title: "Study - HTML",
-      category: "Study",
-    },
-    {
-      title: "Study - Javascript",
-      category: "Study",
-    },
-  ];
+  const [userName, setUserName] = React.useState({ user_name: null });
+
+  const handleOnChange = (name, value) => {
+    setList({
+      ...list,
+      [name]: value,
+    });
+  };
+
+  const getUserName = async () => {
+    try {
+      const user_name = await AsyncStorage.getItem("user_name");
+      setUserName({
+        user_name,
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const [category, setCategory] = React.useState({ user_id: null });
+  const [dataCategory, setDataCategory] = React.useState([]);
+
+  const findUserCategories = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const user_id = await AsyncStorage.getItem("user_id");
+      setCategory({
+        user_id,
+      });
+
+      if (token === null) {
+        props.navigation.navigate("Login");
+      }
+
+      const config = {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+      };
+      const response = await axios.get(
+        `https://api.v2.kontenbase.com/query/api/v1/c16c5e30-3d0c-4b22-87d8-5f098afbfae3/category?user_id=${user_id}`,
+        config
+      );
+      setDataCategory(response.data);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const [dataList, setDataList] = React.useState([]);
+  const getLists = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const user_id = await AsyncStorage.getItem("user_id");
+
+      if (!token) {
+        props.navigation.navigate("Login");
+      }
+      const config = {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+      };
+      const response = await axios.get(
+        `https://api.v2.kontenbase.com/query/api/v1/c16c5e30-3d0c-4b22-87d8-5f098afbfae3/List?user_id=${user_id}`,
+        config
+      );
+      setDataList(response.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  React.useEffect(() => {
+    getUserName();
+    findUserCategories();
+    getLists();
+  }, []);
 
   return (
-    <Box
-      style={{
-        padding: 30,
-      }}
-    >
-      <HStack style={{ justifyContent: "space-between", marginBottom: 20 }}>
-        <VStack>
-          <View>
-            <Text style={styles.title}>Hi Ra</Text>
-            <Text> 200 List</Text>
-          </View>
-        </VStack>
-        <VStack>
-          <Image source={profile} resizeMode="contain" />
-        </VStack>
-      </HStack>
-      <Input placeholder="Search List..." marginBottom={5} padding={3} />
-      <HStack style={{ justifyContent: "space-between", marginBottom: 20 }}>
-        <ButtonAll btnName={"DatePicker"} onPress={() => showMode("date")} />
-
-        <Select
-          minWidth="100"
-          size="md"
-          placeholder="Category"
-          _selectedItem={{
-            bg: "teal.600",
-            endIcon: <CheckIcon size={5} />,
-          }}
-          mt="1"
-        >
-          <Select.Item label="Study" value="study" />
-          <Select.Item label="Home Work" value="homework" />
-          <Select.Item label="Workout" value="workout" />
-        </Select>
-
-        <Select
-          minWidth="100"
-          size="md"
-          placeholder="Status"
-          _selectedItem={{
-            bg: "teal.600",
-            endIcon: <CheckIcon size={5} />,
-          }}
-          mt="1"
-        >
-          <Select.Item label="Finish" value="finish" />
-          <Select.Item label="Pending" value="pending" />
-        </Select>
-      </HStack>
-      {show && (
-        <DateTimePicker
-          testID="dateTimePicker"
-          value={date}
-          mode={mode}
-          is24Hour={true}
-          display="default"
-          onChange={onChange}
-        />
-      )}
-      <Box>
-        <ScrollView>
+    <>
+      <View p={7} className="top" style={{ flex: 1 }}>
+        <HStack mb={3} justifyContent="space-between">
           <VStack>
-            <FlatList
-              data={todos}
-              key={(item) => item.index}
-              renderItem={({ item }) => (
-                <HStack
-                  mb={6}
-                  backgroundColor="#DAEFFF"
-                  borderRadius={10}
-                  padding="3"
-                  justifyContent={"space-between"}
-                >
-                  <TouchableOpacity>
-                    <View className="flex-row mb-5 justify-between bg-[#DAEFFF] py-3 px-3 rounded">
-                      <View>
-                        <Text className="font-bold mb-2">{item.title}</Text>
-                        <Text className="w-[235px] text-[#9B9B9B] mb-5">
-                          Learn Golang to improve fundamentals and familiarize
-                          with coding.
-                        </Text>
-                        <Text className="text-[#9B9B9B]">19 July 2021</Text>
-                      </View>
-                      <View className="items-end">
-                        <Text className="bg-blue-300 text-white rounded px-2 py-1 mb-5 break-words">
-                          {item.category}
-                        </Text>
-                        <Image
-                          mt={2}
-                          source="finish"
-                          resizeMode="contain"
-                          alignItems="center"
-                        />
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                </HStack>
-              )}
-            />
+            <Text bold fontSize="2xl">
+              Hi Ra
+            </Text>
+            <Text color="#FF5555">10 Lists</Text>
           </VStack>
-        </ScrollView>
-      </Box>
-    </Box>
+          <Image
+            alt="profile"
+            source={profile}
+            width={20}
+            height={20}
+            borderRadius={50}
+            borderWidth={3}
+            borderColor="#FF5555"
+          />
+        </HStack>
+        <Stack>
+          <Input
+            borderRadius={8}
+            borderWidth={2}
+            mb={2}
+            placeholder="Search List..."
+          />
+          <HStack justifyContent="space-between">
+            <Pressable
+              p={1}
+              title="DatePicker"
+              onPress={() => showMode("date")}
+              borderRadius={8}
+              borderWidth={2}
+              borderColor="gray.300"
+              mb="3"
+              w="120px"
+            >
+              <HStack justifyContent="space-between">
+                <Text fontSize="xs" color="blueGray.400">
+                  <Ionicons name="calendar-outline" />
+                  {text}
+                </Text>
+              </HStack>
+            </Pressable>
+            <Select
+              borderRadius={8}
+              borderWidth={2}
+              mb="5px"
+              w="120px"
+              placeholder="Category"
+              accessibilityLabel="Categories"
+              _selectedItem={{
+                bg: "teal.600",
+                endIcon: <CheckIcon size={5} />,
+              }}
+            >
+              {dataCategory?.map((item, index) => (
+                <Select.Item key={index} label={item?.name} value={item.name} />
+              ))}
+            </Select>
+            <Select
+              w="100px"
+              borderRadius={8}
+              borderWidth={2}
+              mb="5px"
+              placeholder="Status"
+              accessibilityLabel="Status"
+              _selectedItem={{
+                bg: "teal.600",
+                endIcon: <CheckIcon size={5} />,
+              }}
+            >
+              <Select.Item label="finish" value="finish" />
+              <Select.Item label="pending" value="pending" />
+            </Select>
+          </HStack>
+        </Stack>
+      </View>
+      <View p={6} className="bottom" style={{ flex: 3 }}>
+        <FlatList
+          data={dataList}
+          renderItem={(itemData) => {
+            return (
+              <Pressable
+                onPress={() =>
+                  props.navigation.navigate("Detail", { itemData })
+                }
+              >
+                <Box borderRadius={5} bg="lightBlue.100" m={2} p={3}>
+                  <HStack justifyContent="space-between">
+                    <View>
+                      <HStack>
+                        {itemData.item.status === "done" ? (
+                          <>
+                            <Text
+                              style={{
+                                textDecorationLine: "line-through",
+                                textDecorationStyle: "solid",
+                              }}
+                              bold
+                            >
+                              {itemData.item.category}
+                            </Text>
+                            <Text
+                              style={{
+                                textDecorationLine: "line-through",
+                                textDecorationStyle: "solid",
+                              }}
+                              bold
+                            >
+                              {" "}
+                              -{" "}
+                            </Text>
+                            <Text
+                              style={{
+                                textDecorationLine: "line-through",
+                                textDecorationStyle: "solid",
+                              }}
+                              bold
+                            >
+                              {itemData.item.name}
+                            </Text>
+                          </>
+                        ) : (
+                          <>
+                            <Text bold>{itemData.item.category}</Text>
+                            <Text bold> - </Text>
+                            <Text bold>{itemData.item.name}</Text>
+                          </>
+                        )}
+                      </HStack>
+                      {itemData.item.status === "done" ? (
+                        <Text
+                          w={200}
+                          mb={5}
+                          style={{
+                            textDecorationLine: "line-through",
+                            textDecorationStyle: "solid",
+                          }}
+                          color="coolGray.400"
+                        >
+                          {itemData.item.desc}
+                        </Text>
+                      ) : (
+                        <Text w={200} mb={5} color="coolGray.400">
+                          {itemData.item.desc}
+                        </Text>
+                      )}
+
+                      <Text color="coolGray.400">
+                        <Ionicons name="calendar-outline" />{" "}
+                        {itemData.item.date}
+                      </Text>
+                    </View>
+                    <View alignItems="center">
+                      <Pressable>
+                        <Text
+                          bg="danger.100"
+                          w="100px"
+                          fontSize="xs"
+                          borderRadius={8}
+                          color="#fff"
+                          bold
+                          textAlign="center"
+                          mb={2}
+                          p={1}
+                        >
+                          {itemData.item.category}
+                        </Text>
+                      </Pressable>
+                      {itemData.item.status === "done" ? (
+                        <Image
+                          alt="status"
+                          source={finish}
+                          width="60px"
+                          height="60px"
+                        />
+                      ) : (
+                        <Image
+                          alt="status"
+                          source={pending}
+                          width="60px"
+                          height="60px"
+                        />
+                      )}
+                    </View>
+                  </HStack>
+                </Box>
+              </Pressable>
+            );
+          }}
+          keyExtractor={(item, index) => {
+            return item._id;
+          }}
+        />
+        {show && (
+          <DateTimePicker
+            testID="dateTimePicker"
+            value={date}
+            mode={mode}
+            is24Hours={true}
+            display="default"
+            onChange={onChangeDate}
+          />
+        )}
+      </View>
+    </>
   );
-};
-
-export default ListTodo;
-
-const styles = StyleSheet.create({
-  title: {
-    marginTop: 10,
-    fontWeight: "bold",
-    fontSize: 20,
-  },
-  btn: {
-    textAlign: "center",
-    borderRadius: 10,
-    backgroundColor: "#FF5555",
-  },
-  textBtn: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 20,
-  },
-  btnCat: {
-    padding: 15,
-    marginEnd: 8,
-  },
-});
+}

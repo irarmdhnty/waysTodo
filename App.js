@@ -84,6 +84,14 @@ export default function App() {
               headerShown: false,
             }}
           />
+          <Stack.Screen
+            name="Detail"
+            component={DetailList}
+            options={{
+              title: "Detail List",
+              headerShown: false,
+            }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </NativeBaseProvider>

@@ -8,26 +8,39 @@ import {
   KeyboardAvoidingView,
   Spinner,
 } from "native-base";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, Text } from "react-native";
 import { ButtonAll } from "../components/ButtonAll";
 
-const AddCategory = () => {
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [categoryLoading, setCategoryLoading] = React.useState(false);
+const AddCategory = ({ navigation }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [categoryLoading, setCategoryLoading] = useState(false);
 
-  const [categories, setCategories] = React.useState([]);
-
-  const [form, setForm] = React.useState({
-    name: "",
-    user_id: "",
-  });
-
+  const [categories, setCategories] = useState([]);
+  const [dataCategory, setDataCategory] = useState({ user_id: null });
+  console.log("ini user id");
+  function handleOnChange(name, value) {
+    setDataCategory({
+      ...dataCategory,
+      [name]: value,
+    });
+  }
+  console.log(dataCategory);
   const getCategory = async () => {
     try {
+      const token = await AsyncStorage.getItem("token");
+      const user_id = await AsyncStorage.getItem("user_id");
+      setDataCategory({
+        user_id,
+      });
+      console.log(dataCategory);
+      if (token === null) {
+        props.navigation.navigate("Login");
+      }
+
       setCategoryLoading(true);
       const response = await axios.get(
-        "https://api.v2.kontenbase.com/query/api/v1/c16c5e30-3d0c-4b22-87d8-5f098afbfae3/category"
+        `https://api.v2.kontenbase.com/query/api/v1/c16c5e30-3d0c-4b22-87d8-5f098afbfae3/category?user_id=${user_id}`
       );
       setCategoryLoading(false);
       setCategories(response.data);
@@ -43,16 +56,20 @@ const AddCategory = () => {
   }, []);
 
   const handleAddCategory = async () => {
-    const token = await AsyncStorage.getItem("token");
-    const id = await AsyncStorage.getItem("id");
-    console.log(id);
     try {
-      setForm({ ...form, user_id: id });
-      console.log(form);
+      const token = await AsyncStorage.getItem("token");
+      const user_id = await AsyncStorage.getItem("user_id");
+      setDataCategory({
+        user_id,
+      });
+      if (!token) {
+        navigation.navigate("Login");
+      }
+
       setIsLoading(true);
       const response = await axios.post(
-        `https://api.v2.kontenbase.com/query/api/v1/c16c5e30-3d0c-4b22-87d8-5f098afbfae3/category`,
-        form,
+        "https://api.v2.kontenbase.com/query/api/v1/c16c5e30-3d0c-4b22-87d8-5f098afbfae3/category",
+        dataCategory,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -86,7 +103,7 @@ const AddCategory = () => {
         <Box>
           <Input
             placeholder="Name"
-            onChangeText={(value) => setForm({ ...form, name: value })}
+            onChangeText={(value) => handleOnChange("name", value)}
           />
         </Box>
         <Box style={{ paddingHorizontal: 5 }} mt={3}>
@@ -134,6 +151,7 @@ const AddCategory = () => {
                       borderRadius: 10,
                       width: "auto",
                       marginRight: 10,
+                      backgroundColor: "pink",
                     }}
                   >
                     <Text>{item.name}</Text>

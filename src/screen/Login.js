@@ -34,7 +34,8 @@ const Login = ({ navigation }) => {
         form
       );
       await AsyncStorage.setItem("token", response.data.token);
-      await AsyncStorage.setItem("id", response.data.user._id);
+      await AsyncStorage.setItem("user_id", response.data.user._id);
+
       setIsLoading(false);
       setForm({
         ...form,
@@ -82,6 +83,7 @@ const Login = ({ navigation }) => {
             padding={"3"}
             value={form.password}
             onChangeText={(e) => handleChange("password", e)}
+            secureTextEntry
           />
 
           <ButtonAll
